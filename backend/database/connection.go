@@ -12,24 +12,31 @@ import (
 
 var DB *gorm.DB
 
-
 func ConnectDB() {
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	// Load .env hanya saat lokal development
+	if os.Getenv("RENDER") == "" {
+		if err := loadLocalEnv(); err != nil {
+			log.Println("⚠️ .env file tidak ditemukan, menggunakan environment system")
+		}
 	}
 
-	dsn := os.Getenv("DATABASE_URI")
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		log.Fatal("❌ DATABASE_URL tidak ditemukan di environment")
+	}
+
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
+		log.Fatal("❌ Gagal koneksi ke database:", err)
 	}
 
-	// err = client.Ping(context.Background())
-	// if err != nil {
-	// 	log.Fatal("Failed to ping database:", err)
-	// }
-
 	DB = db
-	fmt.Println("📦 Connected to PostgreSQL database")
+	fmt.Println("✅ Connected to PostgreSQL database")
+}
+
+func loadLocalEnv() error {
+	if _, err := os.Stat(".env"); err == nil {
+		return godotenv.Load(".env")
+	}
+	return nil
 }
